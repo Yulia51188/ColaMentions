@@ -3,10 +3,27 @@ from dotenv import load_dotenv
 import os
 import datetime
 from pprint import pprint
+import argparse
+import itertools
 
 
-SECONDS_IN_DAY = 24*60*60
-
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description='Count the number of mentions of search word'
+    )
+    parser.add_argument(
+        'search_key',
+        type = str,
+        nargs='+',
+        help='Search word or phrase'
+    )
+    parser.add_argument(
+        '-p', '--period',
+        default=7,
+        type=int,
+        help='If not specified then considered time period is 7 days',
+    )
+    return parser.parse_args()
 
 
 def get_request_to_vk(method, payload={}, 
@@ -17,7 +34,7 @@ def get_request_to_vk(method, payload={},
     return response.json()
 
 
-def get_day_timestamps_from_today(period_in_days=7):
+def get_day_timestamps_from_today(period_in_days=3):
     now_date = datetime.date.today()
     yesterday = datetime.datetime(
         year=now_date.year, 
@@ -28,48 +45,61 @@ def get_day_timestamps_from_today(period_in_days=7):
     )
     day_timestamps = []
     for timedelta in range(1, period_in_days+1):
+        current_date = yesterday - datetime.timedelta(days=timedelta)
+        day_before = current_date - datetime.timedelta(days=1)
         day_timestamps.append({
-            'date': (yesterday - datetime.timedelta(days=timedelta)), 
-            'start_timestamp': (yesterday - datetime.timedelta(days=(timedelta+1))).timestamp(), 
-            'end_timestamp': (yesterday - datetime.timedelta(days=timedelta)).timestamp()
+            'date': current_date, 
+            'start_timestamp': day_before.timestamp(), 
+            'end_timestamp': current_date.timestamp()
         })
     return day_timestamps
 
 
-def main():
-    load_dotenv()
-    service_key = os.getenv("SERVICE_KEY")
-    access_token = os.getenv("ACCESS_TOKEN")    
-    vk_api_version = os.getenv("VERSION")
+class VKWallPostError(Exception):
+    pass
+
+
+def get_stat_for_a_day(payload, vk_method='newsfeed.search'):
+    vk_response = get_request_to_vk(vk_method, payload=payload)
+    if ('response' not in vk_response.keys() or
+            'total_count' not in vk_response['response'].keys()):
+        raise VKWallPostError('The answer is missing the required fields'
+            '["response"]["total_count"]: \n{}'.format(vk_response))  
+    return  vk_response["response"]["total_count"]
+
+
+def get_stat_for_period(timestamps, access_token, version, search_key,
+                        vk_method='newsfeed.search'):
     base_payload = {
         'access_token': access_token,
-        'v': vk_api_version,  
-    }
-    pprint(get_day_timestamps_from_today())
-    exit()    
-    current_date = datetime.datetime.today()
-    yesterday = current_date - datetime.timedelta(days=1)
-    yesterday_midnight = datetime.datetime(
-        year=yesterday.year, 
-        month=yesterday.month,
-        day=yesterday.day,
-        hour=0,
-        tzinfo=datetime.timezone.utc,
-    )
-    end_time = int(yesterday_midnight.timestamp())
-    start_time = end_time - SECONDS_IN_DAY
-    payload = {
-        **base_payload,
-        'q': 'coca-cola',
+        'v': version, 
+        'q': search_key,
         'count': 1,
-        'start_time': start_time,
-        'end_time': end_time,
-    }
-    print(payload)
-    response = get_request_to_vk('newsfeed.search', payload=payload)
-    print(response)
-    print(response['response']['total_count'])
+    } 
+    for period in timestamps:
+        payload = {
+            **base_payload,
+            'start_time': period['start_timestamp'],
+            'end_time': period['end_timestamp'],
+        }
+        yield (period['date'], get_stat_for_a_day(payload))
 
+
+def main():
+    load_dotenv()
+    args = parse_arguments()
+    access_token = os.getenv("ACCESS_TOKEN")    
+    vk_api_version = os.getenv("VERSION")   
+    pprint(
+        list(
+            get_stat_for_period(
+                get_day_timestamps_from_today(args.period),
+                access_token,
+                vk_api_version,
+                ' '.join(args.search_key),
+            )
+        )
+    )
 
 
 if __name__ == '__main__':
