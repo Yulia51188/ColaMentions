@@ -1,5 +1,6 @@
 import requests
 from dotenv import load_dotenv
+import os
 def main():
     load_dotenv()
     service_key = os.getenv("SERVICE_KEY")
