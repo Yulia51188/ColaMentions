@@ -6,6 +6,9 @@ from pprint import pprint
 import argparse
 import itertools
 import plotly
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from time import sleep
 
 
 def parse_arguments():
@@ -23,6 +26,13 @@ def parse_arguments():
         default=7,
         type=int,
         help='If not specified then considered time period is 7 days',
+    )
+    parser.add_argument(
+        '-m', '--matplotlib',
+        type=bool,
+        default=False,
+        help='Plot statistic data with library Matplotlib'
+            ' (and save as png image file) or with Plotly (and get image url)'
     )
     return parser.parse_args()
 
@@ -84,6 +94,23 @@ def get_stat_for_period(timestamps, access_token, version, search_key,
             'end_time': period['end_timestamp'],
         }
         yield (period['date'], get_stat_for_a_day(payload))
+        print(period['date'])
+        sleep(1)
+
+
+def plot_hist_by_matplotlib(hist_data, filepath='chart.png', show_plot=False):
+    x = [x for (x, y) in hist_data]
+    y = [y for (x, y) in hist_data]       
+    fig, ax = plt.subplots()
+    ax.plot(x, y) 
+    ax.format_xdata = mdates.DateFormatter('%d.%m') 
+    fig.autofmt_xdate()  
+    fig.suptitle('Mentions statistic')
+    fig.savefig(filepath)
+    if show_plot:
+        plt.show()
+
+
 
 
 def main():
@@ -93,16 +120,15 @@ def main():
     vk_api_version = os.getenv("VERSION") 
     plotly_key = os.getenv("PLOTLY_API_KEY")    
     plotly_username = os.getenv("PLOTLY_LOGIN")       
-    pprint(
-        list(
-            get_stat_for_period(
-                get_day_timestamps_from_today(args.period),
-                access_token,
-                vk_api_version,
-                ' '.join(args.search_key),
-            )
-        )
-    )
+    stats = list(get_stat_for_period(
+                    get_day_timestamps_from_today(args.period),
+                    access_token,
+                    vk_api_version,
+                    ' '.join(args.search_key),
+                ))
+    plot_hist_by_matplotlib(stats)
+
+    
 
 
 if __name__ == '__main__':
