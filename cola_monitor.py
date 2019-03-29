@@ -5,6 +5,7 @@ import datetime
 from pprint import pprint
 import argparse
 import itertools
+import plotly
 
 
 def parse_arguments():
