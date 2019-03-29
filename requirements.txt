@@ -1,2 +1,4 @@
 requests==2.21.0
 dotenv==0.10.1
+pprint==0.1
+plotly==3.7.1

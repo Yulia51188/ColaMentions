@@ -89,7 +89,9 @@ def main():
     load_dotenv()
     args = parse_arguments()
     access_token = os.getenv("ACCESS_TOKEN")    
-    vk_api_version = os.getenv("VERSION")   
+    vk_api_version = os.getenv("VERSION") 
+    plotly_key = os.getenv("PLOTLY_API_KEY")    
+    plotly_username = os.getenv("PLOTLY_LOGIN")       
     pprint(
         list(
             get_stat_for_period(
