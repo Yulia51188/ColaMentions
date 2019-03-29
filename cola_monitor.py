@@ -94,13 +94,12 @@ def get_stat_for_period(timestamps, access_token, version, search_key,
             'end_time': period['end_timestamp'],
         }
         yield (period['date'], get_stat_for_a_day(payload))
-        print(period['date'])
-        sleep(1)
+        sleep(0.35)
 
 
-def plot_hist_by_matplotlib(hist_data, filepath='chart.png', show_plot=False):
-    x = [x for (x, y) in hist_data]
-    y = [y for (x, y) in hist_data]       
+def plot_chart_by_matplotlib(stat_data, filepath='chart.png', show_plot=False):
+    x = [x for (x, y) in stat_data]
+    y = [y for (x, y) in stat_data]       
     fig, ax = plt.subplots()
     ax.plot(x, y) 
     ax.format_xdata = mdates.DateFormatter('%d.%m') 
@@ -111,6 +110,8 @@ def plot_hist_by_matplotlib(hist_data, filepath='chart.png', show_plot=False):
         plt.show()
 
 
+def plot_chart_by_plotly(stat_data, filepath='chart.png', show_plot=False):
+    return
 
 
 def main():
@@ -126,10 +127,11 @@ def main():
                     vk_api_version,
                     ' '.join(args.search_key),
                 ))
-    plot_hist_by_matplotlib(stats)
+    if args.matplotlib:
+        plot_chart_by_matplotlib(stats)
+    else:
+        print(plot_chart_by_plotly(stats))
 
     
-
-
 if __name__ == '__main__':
     main()
