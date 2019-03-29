@@ -6,6 +6,7 @@ from pprint import pprint
 import argparse
 import itertools
 import plotly
+from plotly import graph_objs as go
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from time import sleep
@@ -87,21 +88,23 @@ def get_stat_for_period(timestamps, access_token, version, search_key,
         'q': search_key,
         'count': 1,
     } 
+    dates=[]
+    counts=[]
     for period in timestamps:
         payload = {
             **base_payload,
             'start_time': period['start_timestamp'],
             'end_time': period['end_timestamp'],
         }
-        yield (period['date'], get_stat_for_a_day(payload))
+        dates.append(period['date'])
+        counts.append(get_stat_for_a_day(payload))
         sleep(0.35)
+    return [dates, counts]
 
 
-def plot_chart_by_matplotlib(stat_data, filepath='chart.png', show_plot=False):
-    x = [x for (x, y) in stat_data]
-    y = [y for (x, y) in stat_data]       
+def plot_chart_by_matplotlib(stat_data, filepath='chart.png', show_plot=False):   
     fig, ax = plt.subplots()
-    ax.plot(x, y) 
+    ax.plot(stat_data[0], stat_data[1]) 
     ax.format_xdata = mdates.DateFormatter('%d.%m') 
     fig.autofmt_xdate()  
     fig.suptitle('Mentions statistic')
@@ -110,8 +113,11 @@ def plot_chart_by_matplotlib(stat_data, filepath='chart.png', show_plot=False):
         plt.show()
 
 
-def plot_chart_by_plotly(stat_data, filepath='chart.png', show_plot=False):
-    return
+def plot_chart_by_plotly(stat_data, username, api_key):
+    chart_data = [go.Bar(x=stat_data[0], y=stat_data[1])]
+    plotly.tools.set_credentials_file(username=username, api_key=api_key)
+    image_url = plotly.plotly.plot(chart_data, filename='time-series-simple', auto_open=False)
+    return image_url
 
 
 def main():
@@ -130,7 +136,7 @@ def main():
     if args.matplotlib:
         plot_chart_by_matplotlib(stats)
     else:
-        print(plot_chart_by_plotly(stats))
+        print(plot_chart_by_plotly(stats, plotly_username, plotly_key))
 
     
 if __name__ == '__main__':
