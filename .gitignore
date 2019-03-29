@@ -2,8 +2,10 @@
 *.sublime-project
 *.sublime-workspace
 
-#Folders
+#Folders and images
 images/
+*.png
+*.jpg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
